@@ -59,7 +59,7 @@ async def add_new_venue(
 
                 values = (qr_id, category, int(number))
                 venue = await conn.fetchrow(
-                    "insert into venue(qr_id, category, number) values($1, $2, $3) returning *;",
+                    "insert into venue(qr_id, category, number) values($1, $2, $3) returning id;",
                     *values, record_class=Venue
                 )
 
@@ -75,8 +75,8 @@ async def add_new_venue(
         "venue": {
             "id": venue['id'],
             "qr_code_url": qr_image_url,
-            "number": venue['number'],
-            "category": venue['category']
+            "number": number,
+            "category": category
         },
         "message": "qr_code created successfully",
     }
