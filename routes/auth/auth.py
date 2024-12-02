@@ -4,7 +4,6 @@ from datetime import datetime
 from hashlib import sha256
 from typing import *
 from venv import logger
-from xml.etree.ElementTree import tostring
 
 from asyncpg import Connection
 from asyncpg.transaction import Transaction

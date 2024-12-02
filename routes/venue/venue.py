@@ -1,12 +1,11 @@
 
 import traceback
+from hashlib import sha1
 from io import BytesIO
 from typing import Annotated
-from hashlib import sha1
 
 from asyncpg import Connection
 from fastapi import APIRouter, Form, HTTPException
-from grpc.framework.foundation.callable_util import with_exceptions_logged
 
 from database.db import database
 from firebase.firebase import firebase_bucket
@@ -59,7 +58,7 @@ async def add_new_venue(
 
                 values = (qr_id, category, int(number))
                 venue = await conn.fetchrow(
-                    "insert into venue(qr_id, category, number) values($1, $2, $3) returning id;",
+                    "insert into venue(qr_id, category, number) values($1, $2, $3) returning *;",
                     *values, record_class=Venue
                 )
 
@@ -75,8 +74,8 @@ async def add_new_venue(
         "venue": {
             "id": venue['id'],
             "qr_code_url": qr_image_url,
-            "number": number,
-            "category": category
+            "number": venue['number'],
+            "category": venue['category']
         },
         "message": "qr_code created successfully",
     }

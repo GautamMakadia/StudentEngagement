@@ -1,4 +1,3 @@
-import asyncio
 from contextlib import asynccontextmanager
 
 import asyncpg
@@ -7,8 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database.db import database
-from routes.session import session
 from routes.auth import auth
+from routes.session import session
 from routes.venue import venue
 
 
@@ -39,7 +38,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-db: asyncpg.Pool
 
 
 

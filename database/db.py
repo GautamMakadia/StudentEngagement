@@ -1,7 +1,4 @@
-from http.client import HTTPException
-
 import asyncpg
-
 
 from config import get_setting, Settings
 

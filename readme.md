@@ -8,3 +8,8 @@
 + Firebase cloud storage (storing qrcode image)
 + Database: PostgreSQL
 + Android (kotlin)
+
+## For installing dependencies
+```sh
+ pip install asyncpg firebase-admin fastapi pyparsing uvicorn pydantic-settings python-multipart segno
+```
