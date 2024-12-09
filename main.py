@@ -1,14 +1,11 @@
 from contextlib import asynccontextmanager
 
-import asyncpg
 import uvicorn as uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database.db import database
-from routes.auth import auth
-from routes.session import session
-from routes.venue import venue
+from routes import auth, session, venue
 
 
 @asynccontextmanager
