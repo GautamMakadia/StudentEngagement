@@ -9,7 +9,7 @@ from pyparsing import Empty
 from database.db import database
 from models.students import Session
 
-router = APIRouter(prefix="/session", tags=["session"])
+router = APIRouter(prefix="/session", tags=["session",])
 
 
 @router.get("/user/{uid}")
@@ -32,19 +32,27 @@ async def get_user_sessions(uid: int):
                     sessions: str = "no session found"
                     return
 
+                response = []
+
                 for session in sessions:
-                    session.punch_in_time.strftime("%A, %d %b %Y")
+                    data = dict(session)
+                    punch_in: str = session['punch_in_time'].strftime("%A %d %b %y, %I:%M")
+                    if session['punch_out_time'] is not None:
+                        punch_out: str = session['punch_out_time'].strftime("%A %d %b %y, %I:%M")
 
-                response = dict(
-                    uid=uid,
-                    sessions=sessions
+                    data['punch_in_time'] = punch_in
+                    data['punch_out_time'] = punch_out
+
+                    response.append(data)
+
+                del sessions
+
+                return dict(
+                    sessions=response
                 )
-
-                return response
 
     except Exception as error:
         raise error
-
 
 
 @router.get("/{id}")
@@ -55,7 +63,7 @@ async def get_session(id: int):
             stmt = """
                 select 
                     s.id, s.description, s.user_id, s.venue_id, s.punch_in_time, s.punch_out_time, s.is_active, 
-                    v.category as venue_category,
+                    v.category as venue_category
                 from session as s 
                 inner join
                     venue as v
@@ -73,24 +81,24 @@ async def get_session(id: int):
                     "status": 404,
                 })
 
-            punch_in: datetime = datetime.fromisoformat(session["punch_in_time"])
-            punch_out: datetime = datetime.fromisoformat(session["punch_out_time"])
+            punch_in: datetime = session["punch_in_time"]
+            punch_out: datetime = session["punch_out_time"]
 
             response = {
                 "id": session["id"],
                 "description": session['description'],
                 "user_id": session["user_id"],
-                "punch_in": punch_in.strftime("%A %d %b %y"),
-                "punch_out": punch_out.strftime("%A %d %b %y"),
+                "punch_in": punch_in.strftime("%A %d %b %y, %I:%M"),
+                "punch_out": punch_out.strftime("%A %d %b %y, %I:%M"),
                 "is_active": session['is_active'],
                 "venue_id": session['venue_id'],
                 "venue_category": session['venue_category']
             }
 
-
             return response
 
-    except HTTPException as error: raise error
+    except HTTPException as error:
+        raise error
     except Exception as error:
         print(traceback.format_exc())
         raise HTTPException(500, detail={
@@ -98,6 +106,7 @@ async def get_session(id: int):
             "error": error.args,
             "trace": traceback.format_exc()
         })
+
 
 @router.post("")
 async def register_session(
@@ -138,13 +147,14 @@ async def register_session(
                     "id": session['id'],
                     "user_id": uid,
                     "venue_id": venue_id,
-                    "punch_in_time": date.date() + date.time(),
+                    "punch_in_time": date,
                     "is_active": True
                 }
 
                 return response
 
-    except HTTPException as error: raise error
+    except HTTPException as error:
+        raise error
     except Exception as error:
         print(traceback.format_exc())
         raise HTTPException(500, detail={
@@ -152,6 +162,7 @@ async def register_session(
             "error": error.args,
             "trace": traceback.format_exc()
         })
+
 
 @router.put("")
 async def close_session(id: Annotated[int, Form()]):

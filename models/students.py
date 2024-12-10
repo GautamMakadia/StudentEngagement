@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from asyncpg import Record
 
@@ -19,7 +19,7 @@ class Users(Record):
 class Venue(Record):
     id: int
     name: str
-    qr_id: int
+    qr_id: str
     category: str
     number: int
 

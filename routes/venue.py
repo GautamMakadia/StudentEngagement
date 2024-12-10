@@ -1,4 +1,3 @@
-
 import traceback
 from hashlib import sha1
 from io import BytesIO
@@ -16,7 +15,7 @@ router = APIRouter(prefix="/venue", tags=["venue",])
 
 @router.post("")
 async def add_new_venue(
-    number: Annotated[str, Form()],
+    venue_id: Annotated[str, Form()],
     category: Annotated[str, Form()]
 ):
     conn: Connection
@@ -25,20 +24,20 @@ async def add_new_venue(
         async with database.pool.acquire() as conn:
             async with conn.transaction():
                 venue: Venue = await conn.fetchrow(
-                    "select * from venue where number=$1 and category=$2;",
-                    int(number), category, record_class=Venue)
+                    "select * from venue where id=$1;",
+                    int(venue_id), record_class=Venue)
 
                 if venue is not None:
                     raise HTTPException(409, detail={
                         "venue_id": venue["id"],
                         "message": "venue already exist",
                         "venue": {
+                            "id": venue["id"],
                             "category": venue["category"],
-                            "number": venue["number"]
                         }
                     })
 
-                img, tag = generate_qr_code(number, category)
+                img, tag = generate_qr_code(venue_id, category)
                 qr_id = sha1(BytesIO(tag.encode('utf-8')).read()).hexdigest()
 
                 try:
@@ -56,9 +55,9 @@ async def add_new_venue(
 
                 await conn.execute("insert into qr_code values($1, $2);", qr_id, qr_image_url)
 
-                values = (qr_id, category, int(number))
+                values = (int(venue_id), qr_id, category)
                 venue = await conn.fetchrow(
-                    "insert into venue(qr_id, category, number) values($1, $2, $3) returning *;",
+                    "insert into venue(id, qr_id, category) values($1, $2, $3) returning *;",
                     *values, record_class=Venue
                 )
 
@@ -74,7 +73,6 @@ async def add_new_venue(
         "venue": {
             "id": venue['id'],
             "qr_code_url": qr_image_url,
-            "number": venue['number'],
             "category": venue['category']
         },
         "message": "qr_code created successfully",
@@ -89,7 +87,7 @@ async def get_session(id: int):
             async with conn.transaction():
                 stmt = """
                     select 
-                       v.category, v.number, qr.id as qr_id, qr.url
+                       v.category, v.id, qr.id as qr_id, qr.url
                     from 
                         venue v
                     inner join
@@ -108,7 +106,6 @@ async def get_session(id: int):
 
                 response: dict = {
                     "id": id,
-                    "number": venue['number'],
                     "category": venue['category'],
                     "qr_code": {
                         "id": venue['qr_id'],
