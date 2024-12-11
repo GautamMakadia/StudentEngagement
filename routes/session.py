@@ -7,9 +7,56 @@ from fastapi import APIRouter, HTTPException, Form
 from pyparsing import Empty
 
 from database.db import database
-from models.students import Session
+from models.students import Session, create_session_from
+from util import get_date
 
 router = APIRouter(prefix="/session", tags=["session",])
+
+def sanitize_session(session: Session) -> dict:
+    data = dict(session)
+    session = create_session_from(session)
+    punch_in: str = session.punch_in_time.strftime("%A %d %b %y, %I:%M")
+    data['punch_in_time'] = punch_in
+
+    if session['punch_out_time'] is not None:
+        punch_out: str = session.punch_out_time.strftime("%A %d %b %y, %I:%M")
+        data['punch_out_time'] = punch_out
+
+    return data
+
+
+@router.get("/user/{uid}")
+async def get_user_sessions(uid: int, date: int | None = None):
+    try:
+        conn: Connection
+        async with database.pool.acquire() as conn:
+            async with conn.transaction():
+                stmt = """
+                    select *
+                    from session 
+                    where user_id = $1 and punch_in_time::date = $2
+                """
+                args = (uid, get_date(date))
+                sessions: list[Session] = await conn.fetch(stmt, *args, record_class=Session)
+
+                if sessions is Empty:
+                    raise HTTPException(404, detail={
+                        "message": "Resource Not Found",
+                        "status": 404,
+                    })
+
+                response = []
+                for session in sessions:
+                    response.append(sanitize_session(session))
+
+                del sessions
+
+                return dict(
+                    sessions=response
+                )
+
+    except Exception as error:
+        raise error
 
 
 @router.get("/user/{uid}")
@@ -19,31 +66,22 @@ async def get_user_sessions(uid: int):
         async with database.pool.acquire() as conn:
             async with conn.transaction():
                 stmt = """
-                    select 
-                        *
+                    select *
                     from session 
-                    where
-                        user_id = $1  
+                    where user_id = $1  
                 """
 
                 sessions: list[Session] = await conn.fetch(stmt, uid, record_class=Session)
 
                 if sessions is Empty:
-                    sessions: str = "no session found"
-                    return
+                    raise HTTPException(404, detail={
+                        "message": "Resource Not Found",
+                        "status": 404,
+                    })
 
                 response = []
-
                 for session in sessions:
-                    data = dict(session)
-                    punch_in: str = session['punch_in_time'].strftime("%A %d %b %y, %I:%M")
-                    if session['punch_out_time'] is not None:
-                        punch_out: str = session['punch_out_time'].strftime("%A %d %b %y, %I:%M")
-
-                    data['punch_in_time'] = punch_in
-                    data['punch_out_time'] = punch_out
-
-                    response.append(data)
+                    response.append(sanitize_session(session))
 
                 del sessions
 
