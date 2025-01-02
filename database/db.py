@@ -1,8 +1,5 @@
 import asyncpg
-
-from config import get_setting, Settings
-
-setting: Settings = get_setting()
+from config import env
 
 tables = {
     "users": "users",
@@ -16,10 +13,10 @@ class Postgres:
 
     async def connect(self):
         self.pool = await asyncpg.create_pool(
-            user=setting.DB_USER,
-            password=setting.DB_PASS,
+            user=env.DB_USER,
+            password=env.DB_PASS,
             host="127.0.0.1",
-            database=setting.DB_NAME,
+            database=env.DB_NAME,
             min_size=1,
             max_size=100
         )
